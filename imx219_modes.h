@@ -568,21 +568,21 @@ struct sensor_regs imx219_mode7[] =
 };
 
 struct mode_def imx219_modes[] = {
-   { imx219_8MPix, NUM_ELEMENTS(imx219_8MPix), 3280, 2464, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 2504, 18904,
+   { imx219_8MPix, NUM_ELEMENTS(imx219_8MPix), 3280, 2464, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 3448, 2504, 18904,
 		0, 0, 0, 0, 0, 0, 0, 6 },
-   { imx219_mode1, NUM_ELEMENTS(imx219_mode1), 1920, 1080, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 1084, 18904,
+   { imx219_mode1, NUM_ELEMENTS(imx219_mode1), 1920, 1080, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 3448, 1084, 18904,
 		0, 0, 0, 0, 0, 0, 0, 66 },
-   { imx219_mode2, NUM_ELEMENTS(imx219_mode2), 3280, 2464, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 2468, 18904,
+   { imx219_mode2, NUM_ELEMENTS(imx219_mode2), 3280, 2464, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 3448, 2468, 18904,
 		0, 0, 0, 0, 0, 0, 0, 66 },
-   { imx219_mode3, NUM_ELEMENTS(imx219_mode3), 3280, 2464, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 2468, 18904,
+   { imx219_mode3, NUM_ELEMENTS(imx219_mode3), 3280, 2464, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 3448, 2468, 18904,
 		0, 0, 0, 0, 0, 0, 0, 66 },
-   { imx219_mode4, NUM_ELEMENTS(imx219_mode4), 1640, 1232, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 1236, 18904,
+   { imx219_mode4, NUM_ELEMENTS(imx219_mode4), 1640, 1232, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 3448, 1236, 18904,
 		0, 0, 0, 0, 0, 0, 0, 66 },
-   { imx219_mode5, NUM_ELEMENTS(imx219_mode5), 1640,  922, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2,  926, 18904,
+   { imx219_mode5, NUM_ELEMENTS(imx219_mode5), 1640,  922, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 3448,  926, 18904,
 		0, 0, 0, 0, 0, 0, 0, 66 },
-   { imx219_mode6, NUM_ELEMENTS(imx219_mode6), 1280,  720, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2,  724, 19517,
+   { imx219_mode6, NUM_ELEMENTS(imx219_mode6), 1280,  720, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 3559,  724, 19517,
 		0, 0, 0, 0, 0, 0, 0, 66 },
-   { imx219_mode7, NUM_ELEMENTS(imx219_mode7),  640,  480, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2,  484, 19517,
+   { imx219_mode7, NUM_ELEMENTS(imx219_mode7),  640,  480, 0, BAYER_ORDER_BGGR, 10, 0x2B, 2, 3559,  484, 19517,
 		0, 0, 0, 0, 0, 0, 0, 66 },
 };
 
@@ -616,8 +616,12 @@ struct sensor_def imx219 = {
       .exposure_reg =         0x015A,
       .exposure_reg_num_bits = 16,
 
+      .hts_reg =              0x0162,
+      .hts_reg_num_bits =     16,
+
       .vts_reg =              0x0160,
       .vts_reg_num_bits =     16,
+      .vts_max =              65504,
 
       .gain_reg =             0x0157,
       .gain_reg_num_bits =    8,    //Only valid up to 230.
