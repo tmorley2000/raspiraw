@@ -443,7 +443,7 @@ MMAL_STATUS_T create_filenames(char** finalName, char * pattern, int frame)
 	return MMAL_SUCCESS;
 }
 
-void decodemetadataline(uint8_t *data)
+void decodemetadataline(uint8_t *data, int bpp)
 {
 	int c=1;
 	uint8_t tag,dta;
@@ -455,9 +455,12 @@ void decodemetadataline(uint8_t *data)
 		while (data[c]!=0x07)
 		{
 			tag=data[c++];
-			if (c%5==4)
+			if (bpp=10 && c%5==4)
+				c++;
+			if (bpp=12 && c%3==2)
 				c++;
 			dta=data[c++];
+
 			if (tag==0xaa)
 				reg=(reg&0x00ff)|(dta<<8);
 			else if (tag==0xa5)
@@ -472,6 +475,26 @@ void decodemetadataline(uint8_t *data)
 	}
 	else
 		vcos_log_error("Doesn't looks like register set %x!=0x0a",data[0]);
+
+}
+
+int encoding_to_bpp(uint32_t encoding)
+{
+       switch(encoding)
+       {
+       case    MMAL_ENCODING_BAYER_SBGGR10P:
+       case    MMAL_ENCODING_BAYER_SGBRG10P:
+       case    MMAL_ENCODING_BAYER_SGRBG10P:
+       case    MMAL_ENCODING_BAYER_SRGGB10P:
+               return 10;
+       case    MMAL_ENCODING_BAYER_SBGGR12P:
+       case    MMAL_ENCODING_BAYER_SGBRG12P:
+       case    MMAL_ENCODING_BAYER_SGRBG12P:
+       case    MMAL_ENCODING_BAYER_SRGGB12P:
+               return 12;
+       default:
+               return 8;
+       };
 
 }
 
@@ -517,10 +540,11 @@ static void callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer)
 
 		if (cfg->decodemetadata && (buffer->flags&MMAL_BUFFER_HEADER_FLAG_CODECSIDEINFO))
 		{
+			int bpp = encoding_to_bpp(port->format->encoding);
 			vcos_log_error("First metadata line");
-			decodemetadataline(buffer->data);
+			decodemetadataline(buffer->data, bpp);
 			vcos_log_error("Second metadata line");
-			decodemetadataline(buffer->data+VCOS_ALIGN_UP(5*(port->format->es->video.width/4),16));
+			decodemetadataline(buffer->data+VCOS_ALIGN_UP(5*(port->format->es->video.width/4),16), bpp);
 		}
 
 		buffer->length = 0;
@@ -892,39 +916,27 @@ enum operation {
 void modReg(struct mode_def *mode, uint16_t reg, int startBit, int endBit, int value, enum operation op);
 
 int main(int argc, char** argv) {
-	RASPIRAW_PARAMS_T cfg = {
-		.mode = 0,
-		.hflip = 0,
-		.vflip = 0,
-		.exposure = -1,
-		.gain = -1,
-		.output = NULL,
-		.capture = 0,
-		.write_header = 0,
-		.timeout = 5000,
-		.saverate = 20,
-		.bit_depth = -1,
-		.camera_num = -1,
-		.exposure_us = -1,
-		.i2c_bus = DEFAULT_I2C_DEVICE,
-		.regs = NULL,
-		.hinc = -1,
-		.vinc = -1,
-		.fps = -1,
-		.width = -1,
-		.height = -1,
-		.left = -1,
-		.top = -1,
-		.write_header0 = NULL,
-		.write_headerg = NULL,
-		.write_timestamps = NULL,
-		.write_empty = 0,
-		.ptsa = NULL,
-		.ptso = NULL,
-	};
+	RASPIRAW_PARAMS_T cfg = { 0 };
 	uint32_t encoding;
 	const struct sensor_def *sensor;
 	struct mode_def *sensor_mode = NULL;
+
+	//Initialise any non-zero config values.
+	cfg.exposure = -1;
+	cfg.gain = -1;
+	cfg.timeout = 5000;
+	cfg.saverate = 20;
+	cfg.bit_depth = -1;
+	cfg.camera_num = -1;
+	cfg.exposure_us = -1;
+	cfg.i2c_bus = DEFAULT_I2C_DEVICE;
+	cfg.hinc = -1;
+	cfg.vinc = -1;
+	cfg.fps = -1;
+	cfg.width = -1;
+	cfg.height = -1;
+	cfg.left = -1;
+	cfg.top = -1;
 
 	bcm_host_init();
 	vcos_log_register("RaspiRaw", VCOS_LOG_CATEGORY);
