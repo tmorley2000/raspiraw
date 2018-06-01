@@ -1029,13 +1029,6 @@ int main(int argc, char** argv) {
 		modReg(sensor_mode, 0x3815, 0, 7, cfg.vinc, EQUAL);
 	}
 
-//	if (cfg.fps > 0)
-//	{
-//		int n = 1000000000 / (sensor_mode->line_time_ns * cfg.fps);
-//		modReg(sensor_mode, sensor->vts_reg+0, 0, 7, n>>8, EQUAL);
-//		modReg(sensor_mode, sensor->vts_reg+1, 0, 7, n&0xFF, EQUAL);
-//	}
-
 	if (cfg.width > 0)
 	{
 		sensor_mode->width = cfg.width;
@@ -1082,15 +1075,10 @@ int main(int argc, char** argv) {
 		exit(-1);
 	}
 
-//	if (cfg.exposure_us != -1)
-//	{
-//		cfg.exposure = ((int64_t)cfg.exposure_us * 1000) / sensor_mode->line_time_ns;
-//		vcos_log_error("Setting exposure to %d from time %dus", cfg.exposure, cfg.exposure_us);
-//	}
-
 	calculate_frame_params(sensor, sensor_mode, &cfg);
 
 	update_regs(sensor, sensor_mode, cfg.hflip, cfg.vflip, cfg.exposure, cfg.hts, cfg.vts, cfg.gain);
+
 	if (sensor_mode->encoding == 0)
 		encoding = order_and_bit_depth_to_encoding(sensor_mode->order, cfg.bit_depth);
 	else
