@@ -264,7 +264,7 @@ typedef struct {
         int decodemetadata;
 } RASPIRAW_PARAMS_T;
 
-void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mode, int exposure_us, double fps, int *exposure, int *hts, int *vts);
+void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mode, RASPIRAW_PARAMS_T *cfg);
 void update_regs(const struct sensor_def *sensor, struct mode_def *mode, int hflip, int vflip, int exposure, int hts, int vts, int gain);
 
 static int i2c_rd(int fd, uint8_t i2c_addr, uint16_t reg, uint8_t *values, uint32_t n, const struct sensor_def *sensor)
@@ -1088,7 +1088,7 @@ int main(int argc, char** argv) {
 //		vcos_log_error("Setting exposure to %d from time %dus", cfg.exposure, cfg.exposure_us);
 //	}
 
-	calculate_frame_params(sensor, sensor_mode, cfg.exposure_us, cfg.fps, &(cfg.exposure), &(cfg.hts), &(cfg.vts));
+	calculate_frame_params(sensor, sensor_mode, &cfg);
 
 	update_regs(sensor, sensor_mode, cfg.hflip, cfg.vflip, cfg.exposure, cfg.hts, cfg.vts, cfg.gain);
 	if (sensor_mode->encoding == 0)
@@ -1597,14 +1597,14 @@ void modReg(struct mode_def *mode, uint16_t reg, int startBit, int endBit, int v
 	}
 }
 
-void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mode, int exposure_us, double fps, int *exposure, int *hts, int *vts)
+void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mode, RASPIRAW_PARAMS_T *cfg)
 {
 	int frame_us=-1;
 	int h=-1,v=-1,e=-1;
 
-	if (fps>0)
+	if (cfg->fps>0)
 	{
-		frame_us=1000000/fps;
+		frame_us=1000000/cfg->fps;
 		vcos_log_error("Set frame_us to %d\n", frame_us);
 
 		v = ((int64_t)frame_us * 1000) / mode->line_time_ns;
@@ -1612,15 +1612,15 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
 		vcos_log_error("Set v to %d\n", v);
 	}
 
-	if (exposure_us!=-1)
+	if (cfg->exposure_us!=-1)
 	{
-		e = ((int64_t)exposure_us * 1000) / mode->line_time_ns;
+		e = ((int64_t)cfg->exposure_us * 1000) / mode->line_time_ns;
 
 		vcos_log_error("Set e to %d\n", e);
 
-		if (frame_us<exposure_us)
+		if (frame_us<cfg->exposure_us)
 		{
-			frame_us=exposure_us;
+			frame_us=cfg->exposure_us;
 			v=e;
 		        vcos_log_error("reset v to %d\n", v);
 		}
@@ -1631,13 +1631,13 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
 
 	if (e < (1<<sensor->exposure_reg_num_bits) )
         {
-                *exposure=e;
+                cfg->exposure=e;
                 vcos_log_error("set valid exposure %d",v);
         }
 
 	if (v < (1<<sensor->vts_reg_num_bits) )
 	{
-		*vts=v;
+		cfg->vts=v;
 
 		vcos_log_error("set valid vts %d",v);
 	}
@@ -1662,16 +1662,16 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
 		vcos_log_error("test %f",v*line_time_ns);
 		vcos_log_error("test %f",e*line_time_ns);
 		
-		if (exposure_us!=-1)
+		if (cfg->exposure_us!=-1)
 		{
-			e = ((int64_t)exposure_us * 1000) / (h*px_time_ns);
+			e = ((int64_t)cfg->exposure_us * 1000) / (h*px_time_ns);
 		}
 
 		if (v < (1<<sensor->vts_reg_num_bits) && h < (1<<sensor->hts_reg_num_bits))
 		{
-			*vts=v;
+			cfg->vts=v;
 			vcos_log_error("set valid vts %d",v);
-			*hts=h;
+			cfg->hts=h;
 			vcos_log_error("set valid hts %d",h);
 		}
 		else
@@ -1681,7 +1681,7 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
 
 		if (e < (1<<sensor->exposure_reg_num_bits))
 		{
-			*exposure=e;
+			cfg->exposure=e;
 			vcos_log_error("set valid exposure %d",e);
 		}
 		else
