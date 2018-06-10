@@ -618,6 +618,7 @@ struct sensor_def imx219 = {
 
       .hts_reg =              0x0162,
       .hts_reg_num_bits =     16,
+      .hts_max =              0x7ff0,
 
       .vts_reg =              0x0160,
       .vts_reg_num_bits =     16,
