@@ -1607,8 +1607,6 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
 	{
 		e = ((int64_t)cfg->exposure_us * 1000) / mode->line_time_ns;
 
-		vcos_log_error("Raw exposure %d lines", e);
-
 		if (frame_us<cfg->exposure_us)
 			frame_us=cfg->exposure_us;
 	}
@@ -1624,19 +1622,18 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
                 vcos_log_error("Exposure %d lines",e);
         }
 
-	if (v!=-1 && v < vmax )
+	if (v!=-1 && v <= vmax )
 	{
 		cfg->vts=v;
 		vcos_log_error("Vertical size %d lines",v);
 	}
 	else
 	{
-		// vts too large need to recalc hts
 		double px_time_ns=((double)mode->line_time_ns)/mode->min_hts;
 		int line_time_ns;
 
-		vcos_log_error("set px_time_ns to %f\n", px_time_ns);
-		
+   	        vcos_log_error("Extended frame time (%d>%d)",v,vmax);
+
 		// Set v to max value to give best resolution on h
 		v=vmax;
 		h=((int64_t)frame_us * 1000)/(v*px_time_ns);
@@ -1647,12 +1644,12 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
 			e = ((int64_t)cfg->exposure_us * 1000) / (h*px_time_ns);
 		}
 
-		if (v <= vmax && h <= hmax)
+		if (h <= hmax)
 		{
 			cfg->vts=v;
-			vcos_log_error("set valid vts %d",v);
 			cfg->hts=h;
-			vcos_log_error("set valid hts %d",h);
+			vcos_log_error("Vertical size %d lines",v);
+			vcos_log_error("Horizontal size %d lines",h);
 		}
 		else
 		{
@@ -1666,13 +1663,9 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
 		}
 		else
 		{
-		  vcos_log_error("exposure too big %d>%d",e,emax);
+			vcos_log_error("exposure too big %d>%d",e,emax);
 		}
-		
-
-
 	}
-
 }
 
 
