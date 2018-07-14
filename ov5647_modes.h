@@ -882,10 +882,12 @@ struct sensor_def ov5647 = {
    .exposure_reg_num_bits = 20,
 
    .vts_reg =              0x380E,
-   .vts_reg_num_bits =     10,      // total vertical size [9:8] and [7:0] (ov5647 datasheet)
+   .vts_reg_num_bits =     15,      // total vertical size [9:8] and [7:0] (ov5647 datasheet)
+                                    // 13 bits not 10 accortding to https://github.com/allwinner-zh/linux-3.4-sunxi/blob/master/drivers/media/video/sunxi-vfe/device/ov5647.c
+                                    // Pi behavior seems to imply 15 bit!
 
    .hts_reg =              0x380C,
-   .hts_reg_num_bits =     13,      // total vertical size [12:8] and [7:0] (ov5647 datasheet)
+   .hts_reg_num_bits =     13,      // total horizontal size [12:8] and [7:0] (ov5647 datasheet)
 
    .gain_reg =             0x350A,
    .gain_reg_num_bits =    10,
