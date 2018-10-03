@@ -88,16 +88,11 @@ struct mode_def
 	int native_bit_depth;
 	uint8_t image_id;
 	uint8_t data_lanes;
-	unsigned int min_hts;
-	unsigned int min_vts;
+	int min_hts;
+	int min_vts;
 	int line_time_ns;
-	uint32_t timing1;
-	uint32_t timing2;
-	uint32_t timing3;
-	uint32_t timing4;
-	uint32_t timing5;
-	uint32_t term1;
-	uint32_t term2;
+	uint32_t timing[5];
+	uint32_t term[2];
 	int black_level;
 };
 
@@ -297,7 +292,7 @@ static int i2c_rd(int fd, uint8_t i2c_addr, uint16_t reg, uint8_t *values, uint3
 
 	err = ioctl(fd, I2C_RDWR, &msgset);
 	//vcos_log_error("Read i2c addr %02X, reg %04X (len %d), value %02X, err %d", i2c_addr, msgs[0].buf[0], msgs[0].len, values[0], err);
-	if (err != msgset.nmsgs)
+	if (err != (int)msgset.nmsgs)
 		return -1;
 
 	return 0;
@@ -464,9 +459,9 @@ void decodemetadataline(uint8_t *data, int bpp)
 		while (data[c]!=0x07)
 		{
 			tag=data[c++];
-			if (bpp=10 && c%5==4)
+			if (bpp==10 && (c%5)==4)
 				c++;
-			if (bpp=12 && c%3==2)
+			if (bpp==12 && (c%3)==2)
 				c++;
 			dta=data[c++];
 
@@ -699,29 +694,38 @@ static int parse_cmdline(int argc, char **argv, RASPIRAW_PARAMS_T *cfg)
 					const char *percent = argv[i+1];
 					while(valid && *percent && (percent=strchr(percent, '%')) != NULL)
 					{
-					int digits=0;
-					percent++;
-					while(isdigit(*percent))
-					{
+						int digits=0;
 						percent++;
-						digits++;
+						while(isdigit(*percent))
+						{
+							percent++;
+							digits++;
+						}
+						if (!((*percent == '%' && !digits) || *percent == 'd'))
+						{
+							valid = 0;
+							fprintf(stderr, "Filename contains %% characters, but not %%d or %%%% - sorry, will fail\n");
+						}
+						percent++;
 					}
-					if (!((*percent == '%' && !digits) || *percent == 'd'))
+					cfg->output = malloc(len + 10); // leave enough space for any timelapse generated changes to filename
+					if (cfg->output)
 					{
-						valid = 0;
-						fprintf(stderr, "Filename contains %% characters, but not %%d or %%%% - sorry, will fail\n");
+						strncpy(cfg->output, argv[i + 1], len+1);
+						i++;
+						cfg->capture = 1;
 					}
-					percent++;
-				}
-				cfg->output = malloc(len + 10); // leave enough space for any timelapse generated changes to filename
-				vcos_assert(cfg->output);
-				if (cfg->output)
-					strncpy(cfg->output, argv[i + 1], len+1);
-					i++;
-					cfg->capture = 1;
+					else
+					{
+						fprintf(stderr, "internal error - allocation fail\n");
+						valid = 0;
+					}
+
 				}
 				else
+				{
 					valid = 0;
+				}
 				break;
 			}
 
@@ -1097,9 +1101,9 @@ int main(int argc, char** argv) {
 	MMAL_POOL_T *pool = NULL;
 	MMAL_CONNECTION_T *rawcam_isp = NULL;
 	MMAL_CONNECTION_T *isp_render = NULL;
-	MMAL_PARAMETER_CAMERA_RX_CONFIG_T rx_cfg = {{MMAL_PARAMETER_CAMERA_RX_CONFIG, sizeof(rx_cfg)}};
-	MMAL_PARAMETER_CAMERA_RX_TIMING_T rx_timing = {{MMAL_PARAMETER_CAMERA_RX_TIMING, sizeof(rx_timing)}};
-	int i;
+	MMAL_PARAMETER_CAMERA_RX_CONFIG_T rx_cfg;
+	MMAL_PARAMETER_CAMERA_RX_TIMING_T rx_timing;
+	unsigned int i;
 
 	bcm_host_init();
 	vcos_log_register("RaspiRaw", VCOS_LOG_CATEGORY);
@@ -1126,6 +1130,9 @@ int main(int argc, char** argv) {
 	}
 
 	output = rawcam->output[0];
+
+	rx_cfg.hdr.id = MMAL_PARAMETER_CAMERA_RX_CONFIG;
+	rx_cfg.hdr.size = sizeof(rx_cfg);
 	status = mmal_port_parameter_get(output, &rx_cfg.hdr);
 	if (status != MMAL_SUCCESS)
 	{
@@ -1195,26 +1202,29 @@ int main(int argc, char** argv) {
 		vcos_log_error("Failed to set cfg");
 		goto component_destroy;
 	}
+
+	rx_timing.hdr.id = MMAL_PARAMETER_CAMERA_RX_TIMING;
+	rx_timing.hdr.size = sizeof(rx_timing);
 	status = mmal_port_parameter_get(output, &rx_timing.hdr);
 	if (status != MMAL_SUCCESS)
 	{
 		vcos_log_error("Failed to get timing");
 		goto component_destroy;
 	}
-	if (sensor_mode->timing1)
-		rx_timing.timing1 = sensor_mode->timing1;
-	if (sensor_mode->timing2)
-		rx_timing.timing2 = sensor_mode->timing2;
-	if (sensor_mode->timing3)
-		rx_timing.timing3 = sensor_mode->timing3;
-	if (sensor_mode->timing4)
-		rx_timing.timing4 = sensor_mode->timing4;
-	if (sensor_mode->timing5)
-		rx_timing.timing5 = sensor_mode->timing5;
-	if (sensor_mode->term1)
-		rx_timing.term1 = sensor_mode->term1;
-	if (sensor_mode->term2)
-		rx_timing.term2 = sensor_mode->term2;
+	if (sensor_mode->timing[0])
+		rx_timing.timing1 = sensor_mode->timing[0];
+	if (sensor_mode->timing[1])
+		rx_timing.timing2 = sensor_mode->timing[1];
+	if (sensor_mode->timing[2])
+		rx_timing.timing3 = sensor_mode->timing[2];
+	if (sensor_mode->timing[3])
+		rx_timing.timing4 = sensor_mode->timing[3];
+	if (sensor_mode->timing[4])
+		rx_timing.timing5 = sensor_mode->timing[4];
+	if (sensor_mode->term[0])
+		rx_timing.term1 = sensor_mode->term[0];
+	if (sensor_mode->term[1])
+		rx_timing.term2 = sensor_mode->term[1];
 	vcos_log_error("Timing %u/%u, %u/%u/%u, %u/%u",
 		rx_timing.timing1, rx_timing.timing2,
 		rx_timing.timing3, rx_timing.timing4, rx_timing.timing5,
@@ -1520,7 +1530,7 @@ component_destroy:
 		file = fopen(cfg.write_timestamps, "wb");
 		if (file)
 		{
-			int64_t old;
+			int64_t old = 0;
 			PTS_NODE_T aux;
 			for(aux = cfg.ptsa; aux != cfg.ptso; aux = aux->nxt)
 			{
