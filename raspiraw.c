@@ -2124,7 +2124,7 @@ void calculate_frame_params(const struct sensor_def *sensor, struct mode_def *mo
 
 		if (cfg->exposure_us!=-1)
 		{
-			e = ((int64_t)cfg->exposure_us * 1000) / (h*px_time_ns);
+			e = ((int64_t)cfg->exposure_us * 1000) / (line_time_ns);
 		}
 
 		if (h <= hmax)
