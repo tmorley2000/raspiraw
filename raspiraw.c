@@ -1220,6 +1220,15 @@ static void * processing_thread_task(void *arg)
 {
 	RASPIRAW_CALLBACK_T *dev = (RASPIRAW_CALLBACK_T *)arg;
 	MMAL_BUFFER_HEADER_T *buffer;
+	static uint16_t *stack=0;
+
+	static stackcount=0;
+	static n=0;
+
+	if (stack==0)
+		stack=calloc(3280*2464,2);
+
+	printf("buffer %p\n",stack);
 
 	while (!dev->processing_thread_quit)
 	{
@@ -1236,6 +1245,36 @@ static void * processing_thread_task(void *arg)
 			// DO SOME FORM OF PROCESSING ON THE RAW BAYER DATA HERE
 			// buffer->user_data points to the data, with buffer->length
 			// being the length of the data.
+			printf("got %d bytes\n",buffer->length);
+
+        		uint32_t encoding = dev->rawcam_output->format->encoding;
+       			int stride = mmal_encoding_width_to_stride(encoding, dev->rawcam_output->format->es->video.width);
+
+			printf("stride %d\n",stride);
+
+                        uint16_t *data16 = (uint16_t*)(buffer->user_data);
+
+			for(int x=0; x<3280;x++)
+			{
+				for(int y=0; y<2464;y++)
+				{
+                        		stack[x+3280*y] += data16[x + (y*stride/2)];
+				}
+			}
+
+			n++;
+
+			if (n%120==0)
+			{
+				char filename[100];
+				sprintf(filename,"stack-%06d",stackcount++);
+				printf("Saving %s\n",filename);
+				FILE *f=fopen(filename,"wb");
+				fwrite(stack,3280*2464*2,1,f);
+				fclose(f);
+				memset(stack,0,3280*2464*2);
+			}
+
 		}
 
 		mmal_buffer_header_release(buffer);
