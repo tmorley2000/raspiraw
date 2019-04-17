@@ -1254,9 +1254,9 @@ static void * processing_thread_task(void *arg)
 
                         uint16_t *data16 = (uint16_t*)(buffer->user_data);
 
-			for(int x=0; x<3280;x++)
+			for(int y=0; y<2464;y++)
 			{
-				for(int y=0; y<2464;y++)
+				for(int x=0; x<3280;x++)
 				{
                         		stack[x+3280*y] += data16[x + (y*stride/2)];
 				}
@@ -1264,12 +1264,15 @@ static void * processing_thread_task(void *arg)
 
 			n++;
 
-			if (n%120==0)
+			if (n%10==0)
 			{
 				char filename[100];
-				sprintf(filename,"stack-%06d",stackcount++);
+				sprintf(filename,"stack-%06d.raw",stackcount++);
 				printf("Saving %s\n",filename);
 				FILE *f=fopen(filename,"wb");
+                                if (dev->cfg->write_header)
+                                       fwrite(brcm_header, BRCM_RAW_HEADER_LENGTH, 1, f);
+
 				fwrite(stack,3280*2464*2,1,f);
 				fclose(f);
 				memset(stack,0,3280*2464*2);
